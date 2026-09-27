@@ -9,12 +9,20 @@ import androidx.core.widget.ContentLoadingProgressBar
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import android.util.Log
+import com.codepath.asynchttpclient.AsyncHttpClient
+import com.codepath.asynchttpclient.RequestParams
+import com.codepath.asynchttpclient.callback.JsonHttpResponseHandler
+import okhttp3.Headers
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import org.json.JSONArray
 
 
 // --------------------------------//
 // CHANGE THIS TO BE YOUR API KEY  //
 // --------------------------------//
-private const val API_KEY = "<YOUR-API-KEY-HERE>"
+private const val API_KEY = "62p77KIgMMQiZ7kl6UpXrpZjFrTnCoeesQo5ITCm"
 
 /*
  * The class for the only fragment in the app, which contains the progress bar,
@@ -48,52 +56,60 @@ class NationalParksFragment : Fragment(), OnListFragmentInteractionListener {
         progressBar.show()
 
         // Create and set up an AsyncHTTPClient() here
+        val client = AsyncHttpClient()
+        val params = RequestParams()
+        params["api_key"] = API_KEY
+
 
         // Using the client, perform the HTTP request
+        client[
+            "https://developer.nps.gov/api/v1/parks",
+            params,
+            object : JsonHttpResponseHandler()
+            {
+                    override fun onSuccess(
+                        statusCode: Int,
+                        headers: Headers,
+                        json: JsonHttpResponseHandler.JSON
+                    ) {
+                        // The wait for a response is over
+                        progressBar.hide()
 
-        /* Uncomment me once you complete the above sections!
-        {
-            /*
-             * The onSuccess function gets called when
-             * HTTP response status is "200 OK"
-             */
-            override fun onSuccess(
-                statusCode: Int,
-                headers: Headers,
-                json: JsonHttpResponseHandler.JSON
-            ) {
-                // The wait for a response is over
-                progressBar.hide()
+                        // Filter out the "data" JSON array and turn into a String
+                        val dataJSON = json.jsonObject.get("data") as JSONArray
+                        val parksRawJSON = dataJSON.toString()
 
-                //TODO - Parse JSON into Models
+                        // Create a Gson instance to help parse the raw JSON
+                        val gson = Gson()
 
-                val models : List<NationalPark> = mutableListOf() // Fix me!
-                recyclerView.adapter = NationalParksRecyclerViewAdapter(models, this@NationalParksFragment)
+                        val arrayParkType = object : TypeToken<List<NationalPark>>() {}.type
 
-                // Look for this in Logcat:
-                Log.d("NationalParksFragment", "response successful")
-            }
+                        val models: List<NationalPark> = gson.fromJson(parksRawJSON, arrayParkType)
+                        recyclerView.adapter = NationalParksRecyclerViewAdapter(models, this@NationalParksFragment)
 
-            /*
-             * The onFailure function gets called when
-             * HTTP response status is "4XX" (eg. 401, 403, 404)
-             */
-            override fun onFailure(
-                statusCode: Int,
-                headers: Headers?,
-                errorResponse: String,
-                t: Throwable?
-            ) {
-                // The wait for a response is over
-                progressBar.hide()
+                        // Look for this in Logcat:
+                        Log.d("NationalParksFragment", "response successful")
+                    }
 
-                // If the error is not null, log it!
-                t?.message?.let {
-                    Log.e("NationalParksFragment", errorResponse)
-                }
-            }
-        }]
-        */
+                    /*
+                     * The onFailure function gets called when
+                     * HTTP response status is "4XX" (eg. 401, 403, 404)
+                     */
+                    override fun onFailure(
+                        statusCode: Int,
+                        headers: Headers?,
+                        errorResponse: String,
+                        t: Throwable?
+                    ) {
+                        // The wait for a response is over
+                        progressBar.hide()
+
+                        // If the error is not null, log it!
+                        t?.message?.let {
+                            Log.e("NationalParksFragment", errorResponse)
+                        }
+                    }
+                }]
 
     }
 
